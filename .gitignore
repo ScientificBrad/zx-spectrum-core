@@ -1,0 +1,41 @@
+# Build and publish outputs
+**/[Bb]in/
+**/[Oo]bj/
+**/[Pp]ublish/
+publish/
+build_output/
+*.pdb
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+.idea/
+.vscode/
+
+# Test results and temporary traces
+TestResults/
+.pytest_cache/
+__pycache__/
+*.pyc
+traces/*.trace
+traces/*.log
+*.tmp
+
+# Proprietary ROMs and tape images (Clean-Room Distribution)
+roms/*.rom
+!roms/README.md
+games/*.tap
+games/*.tzx
+games/*.z80
+games/*.sna
+!games/README.md
+
+# Screenshots and releases
+releases/
+build_output/
+
+# OS files
+.DS_Store
+Thumbs.db
+[Dd]esktop.ini
