@@ -39,3 +39,8 @@ build_output/
 .DS_Store
 Thumbs.db
 [Dd]esktop.ini
+
+# Downloads and debug captures
+games/*.zip
+screenshots/*.mp4
+scripts/*.bin
