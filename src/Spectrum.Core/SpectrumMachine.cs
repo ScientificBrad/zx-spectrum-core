@@ -1,5 +1,13 @@
 namespace Spectrum.Core;
 
+public enum TurboSpeed
+{
+    Normal1x = 1,
+    Turbo4x = 4,
+    Turbo10x = 10,
+    Unlimited = 50
+}
+
 /// <summary>
 /// Top-level coordinator for the Sinclair ZX Spectrum 48K hardware emulation.
 /// Encapsulates the Z80A CPU, memory bus, Ferranti ULA, keyboard, tape drive, and beeper.
@@ -12,14 +20,24 @@ public sealed class SpectrumMachine
     public SpectrumKeyboard Keyboard => Bus.Keyboard;
     public Beeper Beeper => Bus.Beeper;
     public TapePlayer Tape => Bus.Tape;
+    public SpectrumRamDisk RamDisk { get; } = new();
+    public byte KempstonJoystick { get => Bus.KempstonJoystick; set => Bus.KempstonJoystick = value; }
 
+    public TurboSpeed TurboMode { get; set; } = TurboSpeed.Normal1x;
     public bool IsRomLoaded { get; private set; }
+
+    private readonly Queue<char> _autoTypeQueue = new();
+    private int _autoTypeHoldFrames = 0;
+    private int _autoTypeReleaseFrames = 0;
+    private char _currentAutoTypeChar = '\0';
+    private bool _autoPlayOnComplete = false;
 
     public SpectrumMachine(byte[]? romData = null)
     {
         Bus = new SpectrumBus(romData);
         Cpu = new Z80Cpu(Bus);
         Bus.Cpu = Cpu;
+        Bus.FrameCompleted += ProcessAutoType;
 
         if (romData != null)
         {
@@ -42,8 +60,106 @@ public sealed class SpectrumMachine
 
     public void Reset()
     {
+        _autoTypeQueue.Clear();
+        _autoTypeHoldFrames = 0;
+        _autoTypeReleaseFrames = 0;
+        _autoPlayOnComplete = false;
         Bus.Reset();
         Cpu.Reset();
+        RamDisk.Clear();
+    }
+
+    /// <summary>
+    /// Types LOAD "" and starts tape playback automatically.
+    /// </summary>
+    public void QuickLoad()
+    {
+        _autoTypeQueue.Clear();
+        _autoTypeQueue.Enqueue('J');
+        _autoTypeQueue.Enqueue('"');
+        _autoTypeQueue.Enqueue('"');
+        _autoTypeQueue.Enqueue('\r');
+        _autoPlayOnComplete = true;
+        _autoTypeHoldFrames = 0;
+        _autoTypeReleaseFrames = 5;
+        _currentAutoTypeChar = '\0';
+    }
+
+    private void ProcessAutoType()
+    {
+        if (_autoTypeReleaseFrames > 0)
+        {
+            _autoTypeReleaseFrames--;
+            if (_autoTypeReleaseFrames == 0 && _autoTypeQueue.Count > 0)
+            {
+                _currentAutoTypeChar = _autoTypeQueue.Dequeue();
+                PressChar(_currentAutoTypeChar);
+                _autoTypeHoldFrames = 4;
+            }
+            return;
+        }
+
+        if (_autoTypeHoldFrames > 0)
+        {
+            _autoTypeHoldFrames--;
+            if (_autoTypeHoldFrames == 0)
+            {
+                ReleaseAllKeys();
+                _autoTypeReleaseFrames = 2;
+                if (_autoTypeQueue.Count == 0 && _autoPlayOnComplete)
+                {
+                    _autoPlayOnComplete = false;
+                    Tape.Play();
+                }
+            }
+        }
+    }
+
+    public bool FastTapeLoadEnabled { get; set; } = false;
+    public bool BypassCopyProtection { get; set; } = true;
+
+    private void CheckTraps()
+    {
+        if (Cpu.PC == 0x0008)
+        {
+            RamDisk.TryIntercept(Bus, Cpu);
+        }
+        else if (FastTapeLoadEnabled && Cpu.PC == 0x0556)
+        {
+            TryFastTapeLoad();
+        }
+        else if (BypassCopyProtection && Cpu.PC == 0x869F)
+        {
+            if (Bus.Read(0x86C0) == 0xC3)
+            {
+                Cpu.PC = 0x87CA;
+            }
+        }
+    }
+
+    private bool TryFastTapeLoad()
+    {
+        if (Tape.CurrentTape == null || Tape.CurrentBlockIndex >= Tape.CurrentTape.Blocks.Count)
+            return false;
+
+        var block = Tape.CurrentTape.Blocks[Tape.CurrentBlockIndex];
+        if (block.Flag != Cpu.A)
+        {
+            Console.WriteLine($"[FastTape Mismatch] Block {Tape.CurrentBlockIndex}: block.Flag=0x{block.Flag:X2}, Cpu.A=0x{Cpu.A:X2}, IX=0x{Cpu.IX:X4}, DE=0x{Cpu.DE:X4}");
+            return false;
+        }
+
+        int copyLen = Math.Min((int)Cpu.DE, block.Data.Length);
+        ushort dest = Cpu.IX;
+        for (int i = 0; i < copyLen; i++)
+        {
+            Bus.Write((ushort)(dest + i), block.Data[i]);
+        }
+
+        Tape.AdvanceBlock();
+        Cpu.F |= 0x01; // Set Carry flag (success)
+        Cpu.PC = 0x053F; // Jump to LD-OFF exit routine
+        return true;
     }
 
     /// <summary>
@@ -51,6 +167,7 @@ public sealed class SpectrumMachine
     /// </summary>
     public int Step()
     {
+        CheckTraps();
         return Cpu.Step();
     }
 
@@ -62,6 +179,7 @@ public sealed class SpectrumMachine
         long targetFrames = Bus.TotalFrames + frameCount;
         while (Bus.TotalFrames < targetFrames)
         {
+            CheckTraps();
             Cpu.Step();
         }
     }
@@ -74,6 +192,7 @@ public sealed class SpectrumMachine
         long targetTStates = Cpu.TotalTStates + tStates;
         while (Cpu.TotalTStates < targetTStates)
         {
+            CheckTraps();
             Cpu.Step();
         }
     }

@@ -47,8 +47,40 @@ public sealed class FerrantiUla
         0xFFFFFFFF  // Bright White
     };
 
+    private byte _borderColor = 7; // Default White
+
     // Current border colour (0..7)
-    public byte BorderColor { get; set; } = 7; // Default White
+    public byte BorderColor
+    {
+        get => _borderColor;
+        set
+        {
+            _borderColor = (byte)(value & 0x07);
+            ResetFrameBorders(_borderColor);
+        }
+    }
+
+    // Per-scanline border colours for authentic CRT tape stripes (312 PAL scanlines)
+    private readonly byte[] _lineBorder = new byte[312];
+
+    public void SetLineBorder(int line, byte color)
+    {
+        byte c = (byte)(color & 0x07);
+        if (line >= 0 && line < 312)
+        {
+            for (int l = line; l < 312; l++)
+            {
+                _lineBorder[l] = c;
+            }
+        }
+    }
+
+    public void ResetFrameBorders(byte currentBorder)
+    {
+        Array.Fill(_lineBorder, (byte)(currentBorder & 0x07));
+    }
+
+    public bool VideoRenderingEnabled { get; set; } = true;
 
     // Flash state toggles every 16 frames (~320ms)
     private int _frameCounter;
@@ -92,19 +124,22 @@ public sealed class FerrantiUla
             _flashPhase = !_flashPhase;
         }
 
-        uint borderRgb = Palette[BorderColor & 0x07];
-
-        // 1. Render Top Border (24 lines)
+        // 1. Render Top Border (24 lines: PAL lines 40 to 63)
         int fbIndex = 0;
-        int topBorderSize = TotalWidth * BorderHeight;
-        for (int i = 0; i < topBorderSize; i++)
+        for (int y = 0; y < BorderHeight; y++)
         {
-            Framebuffer[fbIndex++] = borderRgb;
+            uint borderRgb = Palette[_lineBorder[40 + y] & 0x07];
+            for (int x = 0; x < TotalWidth; x++)
+            {
+                Framebuffer[fbIndex++] = borderRgb;
+            }
         }
 
-        // 2. Render 192 Active Display lines with Left and Right Border
+        // 2. Render 192 Active Display lines with Left and Right Border (PAL lines 64 to 255)
         for (int y = 0; y < ScreenHeight; y++)
         {
+            uint borderRgb = Palette[_lineBorder[64 + y] & 0x07];
+
             // Left border (32 pixels)
             for (int bx = 0; bx < BorderWidth; bx++)
             {
@@ -158,11 +193,14 @@ public sealed class FerrantiUla
             }
         }
 
-        // 3. Render Bottom Border (24 lines)
-        int bottomBorderSize = TotalWidth * BorderHeight;
-        for (int i = 0; i < bottomBorderSize; i++)
+        // 3. Render Bottom Border (24 lines: PAL lines 256 to 279)
+        for (int y = 0; y < BorderHeight; y++)
         {
-            Framebuffer[fbIndex++] = borderRgb;
+            uint borderRgb = Palette[_lineBorder[256 + y] & 0x07];
+            for (int x = 0; x < TotalWidth; x++)
+            {
+                Framebuffer[fbIndex++] = borderRgb;
+            }
         }
     }
 }

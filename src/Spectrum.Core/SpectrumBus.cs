@@ -14,6 +14,12 @@ public sealed class SpectrumBus : IBus
     public Beeper Beeper { get; } = new();
     public TapePlayer Tape { get; } = new();
 
+    /// <summary>
+    /// State of Kempston Joystick (Port 0x1F). Active-high bits:
+    /// Bit 0: Right, Bit 1: Left, Bit 2: Down, Bit 3: Up, Bit 4: Fire.
+    /// </summary>
+    public byte KempstonJoystick { get; set; } = 0x00;
+
     public Z80Cpu? Cpu { get; set; }
 
     public int FrameTStates { get; private set; }
@@ -43,9 +49,11 @@ public sealed class SpectrumBus : IBus
         FrameTStates = 0;
         TotalFrames = 0;
         Keyboard.Reset();
+        KempstonJoystick = 0x00;
         Beeper.Clear();
         Tape.Stop();
         Ula.BorderColor = 7;
+        Ula.ResetFrameBorders(7);
     }
 
     public byte Read(ushort address)
@@ -91,6 +99,12 @@ public sealed class SpectrumBus : IBus
 
     public byte In(ushort port)
     {
+        // Kempston Joystick interface: port 0x1F (or A5=0 on odd ports)
+        if ((port & 0xFF) == 0x1F || ((port & 0xE0) == 0 && (port & 0x01) != 0))
+        {
+            return KempstonJoystick;
+        }
+
         // On ZX Spectrum, any even port address (bit 0 = 0) selects the ULA (0xFE)
         if ((port & 0x01) == 0)
         {
@@ -116,7 +130,10 @@ public sealed class SpectrumBus : IBus
         if ((port & 0x01) == 0)
         {
             // Bit 0..2: Border colour
-            Ula.BorderColor = (byte)(value & 0x07);
+            byte border = (byte)(value & 0x07);
+            Ula.BorderColor = border;
+            int line = FrameTStates / FerrantiUla.TStatesPerLine;
+            Ula.SetLineBorder(line, border);
 
             // Bit 4: Beeper speaker state
             Beeper.SpeakerState = (value & 0x10) != 0;
@@ -126,6 +143,7 @@ public sealed class SpectrumBus : IBus
     public void AddTStates(int tStates)
     {
         FrameTStates += tStates;
+        Beeper.UpdateTapeSignal(Tape.State == TapeState.Playing, Tape.EarSignal);
         Beeper.Step(tStates);
         Tape.Step(tStates);
 
@@ -139,7 +157,11 @@ public sealed class SpectrumBus : IBus
             Cpu?.RequestInterrupt();
 
             // Render current frame into ULA framebuffer
-            Ula.RenderFrame(Ram);
+            if (Ula.VideoRenderingEnabled)
+            {
+                Ula.RenderFrame(Ram);
+                Ula.ResetFrameBorders(Ula.BorderColor);
+            }
 
             FrameCompleted?.Invoke();
         }

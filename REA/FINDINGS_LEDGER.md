@@ -35,6 +35,9 @@
 | FND-023 | `0x198B–0x1B56` | Numeric Encoding | `CONFIRMED` | In tokenized Sinclair BASIC, numeric literals must be followed by `0x0E` and a 5-byte binary representation; plain ASCII causes the expression evaluator to halt with error `C Nonsense in BASIC`. |
 | FND-024 | `0x5CB2–0x5CB4` | RAMTOP Sysvars | `CONFIRMED` | Firmware cold boot sets physical top of RAM `P_RAMT` at `0x5CB4` to `0xFFFF`. `RAMTOP` at `0x5CB2` is set to `0xFF57` (protecting 168 bytes for UDGs at `0xFF58`). |
 | FND-025 | `0x1A62 / 0x2294` | BORDER Command Dispatch | `CONFIRMED` | Token `0xE7` (`BORDER`) dispatches through command table class 6 to `0x2294`, which calls `0x1E94` to parse integer argument, validates `< 8`, and executes `OUT (0xFE), A`. |
+| FND-026 | `0x19B8 / 0x5C4B` | VARS Table Structure | `CONFIRMED` | Sinclair BASIC `VARS` area: string vars (`0x40`, len + chars), numeric vars (`0x60`, 6 bytes), `FOR` loop vars (`0xE0`, 19 bytes), arrays (`0x80`/`0xC0`, len + data). Bounded by `E_LINE` (`0x5C59`) and terminated by `0x80`. |
+| FND-027 | `0x1C8A / 0x0008` | Expansion Bus RAM Disk Trap | `CONFIRMED` | RAM disk commands using `SAVE !` / `LOAD !` trigger `REPORT-C` at `0x1C8A`. Intercepted via `RST 08` peripheral hook to handle named storage without modifying the original ROM image. |
+| FND-028 | `0x9637 / 0x8200` | Undocumented IX/IY 8-Bit Opcode `LD IXL, A` (`0xDD 0x6F`) | `CONFIRMED` | Jet Set Willy blits Miner Willy's sprite via routine `0x9637` by computing `IX = 0x8200 + Y` using `LD IXH, 0x82` (`0xDD 0x26 0x82`) and `LD IXL, A` (`0xDD 0x6F`). Missing undocumented opcode support previously left `IXL` unassigned, misrouting sprite drawing off-screen. Full implementation of undocumented 8-bit `IXH/IXL/IYH/IYL` instructions restored Miner Willy in *The Bathroom* and enabled full character gameplay. |
 
 ---
 

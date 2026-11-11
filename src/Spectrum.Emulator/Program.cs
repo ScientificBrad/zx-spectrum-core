@@ -14,7 +14,7 @@ public static class Program
     public static int Main(string[] args)
     {
         Console.WriteLine("===================================================================");
-        Console.WriteLine("   Sinclair ZX Spectrum 48K (1982) - REA Project 004");
+        Console.WriteLine("   RESX - ZX Spectrum 48K Emulator (REA Project 004)");
         Console.WriteLine("   Hardware Reconstruction & Cycle-Accurate Emulation Core");
         Console.WriteLine("   Researcher: ScientificBrad | Host: C# / .NET 8 x64");
         Console.WriteLine("===================================================================\n");
@@ -57,8 +57,18 @@ public static class Program
         // Validate ROM
         if (!File.Exists(romPath))
         {
-            // Also check alternate locations
-            string[] alternates = { "Rom/48.rom", "../roms/48.rom", "../../roms/48.rom", "../../../roms/48.rom" };
+            // Also check alternate locations relative to AppContext.BaseDirectory and current working directory
+            string baseDir = AppContext.BaseDirectory;
+            string[] alternates = {
+                Path.Combine(baseDir, "roms", "48.rom"),
+                Path.Combine(baseDir, "48.rom"),
+                Path.Combine(baseDir, "..", "..", "..", "roms", "48.rom"),
+                "roms/48.rom",
+                "Rom/48.rom",
+                "../roms/48.rom",
+                "../../roms/48.rom",
+                "../../../roms/48.rom"
+            };
             foreach (var alt in alternates)
             {
                 if (File.Exists(alt))

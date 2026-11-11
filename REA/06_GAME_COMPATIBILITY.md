@@ -15,6 +15,8 @@
 | **Project 004 Demo** | 2026 | ScientificBrad | TAP | ROM LD-BYTES | `CONFIRMED` | Authentic TAP header/data loaded via LD-BYTES; executes line 10, sets red border (`BORDER 2`). |
 | **The Matrix** | 1982 | ScientificBrad | TAP | ROM LD-BYTES | `CONFIRMED` | Authentic TAP program; executes `BORDER 0`, renders green INK rain characters to ULA framebuffer. |
 | **Lunar Lander** | 1982 | ScientificBrad | TAP | ROM LD-BYTES | `CONFIRMED` | Authentic TAP game; interactive inputs ('A', 'P') steer lander, renders multi-colour landing pad. |
+| **Samantha Fox Strip Poker** | 1986 | Martech | TAP | ROM + RAM Disk | `CONFIRMED` | 24-block animated title using expansion bus RAM disk peripheral; loads, stores all 10 code frames, animates screen. |
+| **Candy Girl** | 1984 | Sgt. Pepper | TAP | ROM LD-BYTES | `CONFIRMED` | Commercial machine code title; loads 37 KB binary via `LD-BYTES` and executes via `RANDOMIZE USR 25000`. |
 | **Memory Contention Test** | 2026 | ScientificBrad | Code | Machine Code | `CONFIRMED` | Validates 6-cycle contention delays in 0x4000–0x7FFF. |
 | **Manic Miner** | 1983 | Bug-Byte / Matthew Smith | TAP | ROM LD-BYTES | `TARGET` | Tests non-linear VRAM animation, keyboard matrix, border timing. |
 | **Jet Set Willy** | 1984 | Software Projects | TAP | ROM LD-BYTES | `TARGET` | Tests attribute colour clash, continuous sound, sprite movement. |

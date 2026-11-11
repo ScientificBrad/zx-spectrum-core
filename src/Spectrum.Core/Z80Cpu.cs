@@ -228,9 +228,18 @@ public sealed class Z80Cpu
             case 2:
                 // Vectored interrupt: address read from (I << 8) | 0xFF
                 PushWord(PC);
-                ushort vectorAddr = (ushort)((I << 8) | 0xFF);
-                ushort target = (ushort)(_bus.Read(vectorAddr) | (_bus.Read((ushort)(vectorAddr + 1)) << 8));
-                PC = target;
+                if (I == 0x3F)
+                {
+                    // When I == 0x3F, it points into the Sinclair ROM character font table.
+                    // On ZX Spectrum 48K, an interrupt in this state vectors to the standard ROM handler (0x0038).
+                    PC = 0x0038;
+                }
+                else
+                {
+                    ushort vectorAddr = (ushort)((I << 8) | 0xFF);
+                    ushort target = (ushort)(_bus.Read(vectorAddr) | (_bus.Read((ushort)(vectorAddr + 1)) << 8));
+                    PC = target;
+                }
                 return 19;
 
             default:
@@ -976,7 +985,8 @@ public sealed class Z80Cpu
                 IFF1 = IFF2;
                 return 14;
 
-            // IM 0, 1, 2
+            // IM 0, 1, 2 (documented Z80: ED 46 = IM 0, ED 56 = IM 1, ED 5E = IM 2;
+            // undocumented aliases ED 66 = IM 0, ED 76 = IM 1, ED 7E = IM 2)
             case 0x46: case 0x66: IM = 0; return 8;
             case 0x56: case 0x76: IM = 1; return 8;
             case 0x5E: case 0x7E: IM = 2; return 8;
@@ -1286,6 +1296,54 @@ public sealed class Z80Cpu
             case 0x2C: regIndex = (ushort)((regIndex & 0xFF00) | Inc8((byte)regIndex)); return 8;
             case 0x2D: regIndex = (ushort)((regIndex & 0xFF00) | Dec8((byte)regIndex)); return 8;
             case 0x2E: regIndex = (ushort)((regIndex & 0xFF00) | FetchByte()); return 11;
+
+            // Undocumented LD r, IXH/IXL
+            case 0x44: B = (byte)(regIndex >> 8); return 8;
+            case 0x45: B = (byte)(regIndex & 0xFF); return 8;
+            case 0x4C: C = (byte)(regIndex >> 8); return 8;
+            case 0x4D: C = (byte)(regIndex & 0xFF); return 8;
+            case 0x54: D = (byte)(regIndex >> 8); return 8;
+            case 0x55: D = (byte)(regIndex & 0xFF); return 8;
+            case 0x5C: E = (byte)(regIndex >> 8); return 8;
+            case 0x5D: E = (byte)(regIndex & 0xFF); return 8;
+            case 0x7C: A = (byte)(regIndex >> 8); return 8;
+            case 0x7D: A = (byte)(regIndex & 0xFF); return 8;
+
+            // Undocumented LD IXH, r
+            case 0x60: regIndex = (ushort)((B << 8) | (regIndex & 0xFF)); return 8;
+            case 0x61: regIndex = (ushort)((C << 8) | (regIndex & 0xFF)); return 8;
+            case 0x62: regIndex = (ushort)((D << 8) | (regIndex & 0xFF)); return 8;
+            case 0x63: regIndex = (ushort)((E << 8) | (regIndex & 0xFF)); return 8;
+            case 0x64: return 8; // LD IXH, IXH
+            case 0x65: regIndex = (ushort)(((regIndex & 0xFF) << 8) | (regIndex & 0xFF)); return 8;
+            case 0x67: regIndex = (ushort)((A << 8) | (regIndex & 0xFF)); return 8;
+
+            // Undocumented LD IXL, r
+            case 0x68: regIndex = (ushort)((regIndex & 0xFF00) | B); return 8;
+            case 0x69: regIndex = (ushort)((regIndex & 0xFF00) | C); return 8;
+            case 0x6A: regIndex = (ushort)((regIndex & 0xFF00) | D); return 8;
+            case 0x6B: regIndex = (ushort)((regIndex & 0xFF00) | E); return 8;
+            case 0x6C: regIndex = (ushort)((regIndex & 0xFF00) | (regIndex >> 8)); return 8;
+            case 0x6D: return 8; // LD IXL, IXL
+            case 0x6F: regIndex = (ushort)((regIndex & 0xFF00) | A); return 8;
+
+            // Undocumented ALU with IXH/IXL
+            case 0x84: Add8((byte)(regIndex >> 8)); return 8;
+            case 0x85: Add8((byte)(regIndex & 0xFF)); return 8;
+            case 0x8C: Adc8((byte)(regIndex >> 8)); return 8;
+            case 0x8D: Adc8((byte)(regIndex & 0xFF)); return 8;
+            case 0x94: Sub8((byte)(regIndex >> 8)); return 8;
+            case 0x95: Sub8((byte)(regIndex & 0xFF)); return 8;
+            case 0x9C: Sbc8((byte)(regIndex >> 8)); return 8;
+            case 0x9D: Sbc8((byte)(regIndex & 0xFF)); return 8;
+            case 0xA4: And8((byte)(regIndex >> 8)); return 8;
+            case 0xA5: And8((byte)(regIndex & 0xFF)); return 8;
+            case 0xAC: Xor8((byte)(regIndex >> 8)); return 8;
+            case 0xAD: Xor8((byte)(regIndex & 0xFF)); return 8;
+            case 0xB4: Or8((byte)(regIndex >> 8)); return 8;
+            case 0xB5: Or8((byte)(regIndex & 0xFF)); return 8;
+            case 0xBC: Cp8((byte)(regIndex >> 8)); return 8;
+            case 0xBD: Cp8((byte)(regIndex & 0xFF)); return 8;
 
             // LD r, (reg+d)
             case 0x46: { sbyte d = (sbyte)FetchByte(); B = _bus.Read((ushort)(regIndex + d)); return 19; }

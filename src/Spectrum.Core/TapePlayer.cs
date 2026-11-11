@@ -40,9 +40,20 @@ public sealed class TapePlayer
     private byte[] _currentBlockRaw = Array.Empty<byte>();
 
     public TapeState State { get; private set; } = TapeState.Stopped;
+    public TapFile? CurrentTape => _tape;
     public bool EarSignal => _earSignal;
     public int CurrentBlockIndex => _blockIndex;
     public int TotalBlocks => _tape?.Blocks.Count ?? 0;
+
+    public void AdvanceBlock()
+    {
+        _blockIndex++;
+        PrepareBlock();
+        if (_tape == null || _blockIndex >= _tape.Blocks.Count)
+        {
+            State = TapeState.Stopped;
+        }
+    }
 
     public void InsertTape(TapFile tape)
     {

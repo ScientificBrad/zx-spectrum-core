@@ -9,7 +9,7 @@ namespace Spectrum.Emulator;
 internal sealed class WindowsWaveOut : IDisposable
 {
     private const int Slots = 16;
-    private const int MaxSamples = 1100;
+    private const int MaxSamples = 2048;
     private const uint WhdrDone = 1;
     private static readonly int HeaderSize = Marshal.SizeOf<WaveHeader>();
 
@@ -65,8 +65,8 @@ internal sealed class WindowsWaveOut : IDisposable
         {
             FormatTag = 1,
             Channels = 1,
-            SamplesPerSec = 44100,
-            AvgBytesPerSec = 88200,
+            SamplesPerSec = 48000,
+            AvgBytesPerSec = 48000 * 2,
             BlockAlign = 2,
             BitsPerSample = 16,
             ExtraSize = 0
