@@ -1,6 +1,24 @@
 # Project 004: Sinclair ZX Spectrum 48K (1982)
 ## Complete Firmware Reconstruction, Reverse Engineering Analysis & Cycle-Accurate Emulation
 
+## Work-in-progress publication — 16 November 2026
+
+This repository publishes the Spectrum implementation so far, including audio,
+RAM disk support, tape/ULA/Z80 fixes, and game compatibility tests. The historical
+claims below describe earlier milestones; hardware accuracy and complete game
+compatibility have not been independently established by this publication check.
+
+Validation on Windows with .NET 8: Release build succeeded with no warnings or
+errors; 36 tests passed using locally supplied ROM and tape files. Some tests
+return early when media is absent, while others require it. A checkout without
+that media cannot reproduce the full local run. Some game tests also enable fast
+tape loading and copy-protection bypass, so their results do not establish
+unmodified physical tape loading or hardware-accurate execution.
+
+ROMs, tape images, generated builds, and test-generated captures are not included
+in this publication. Supply `roms/48.rom` and the media referenced by the tests
+locally; see [ROM setup](roms/README.md) and [tape policy](games/README.md).
+
 **Researcher:** ScientificBrad  
 **Series:** Historical Computer Reverse Engineering  
 **Project:** 004  
@@ -110,7 +128,7 @@ The emulator runs the verified 1982 Sinclair ZX Spectrum 48K system ROM:
 dotnet build -c Release
 ```
 
-### Run Tests (20 Automated Tests)
+### Run Tests (36 Automated Tests; local media required)
 ```powershell
 dotnet test
 ```
@@ -136,10 +154,10 @@ ZXSpectrum/
 │   ├── Spectrum.Diagnostics/   # Disassembler, ExecutionTracer, BmpWriter
 │   └── Spectrum.Emulator/      # Windows Forms GUI & CLI runner
 ├── tests/
-│   └── Spectrum.Tests/         # 20 automated unit & integration tests
+│   └── Spectrum.Tests/         # 36 automated unit & integration tests
 ├── docs/                       # Architecture, Hardware Reference, Building, Compatibility
 ├── REA/                        # Reverse Engineering Analysis reports and Findings Ledger
-├── games/                      # Verified public-domain TAP games (Matrix, Lander, Demo)
+├── games/                      # Local tape images (not distributed); see README.md
 ├── roms/                       # Sinclair ROM images (git-ignored for clean-room distribution)
 ├── tools/                      # ROM forensic disassembler and TAP generator scripts
 └── screenshots/                # Real emulated framebuffer captures
